@@ -1,6 +1,7 @@
 let lessonSteps = [];
 let currentStep = 0;
 let initialPosition = {};
+let currentLegalMoves = [];
 
 function getKnightMoves(square) {
 
@@ -460,16 +461,18 @@ document.addEventListener(
                             );
                         }
                     );
-                document.
-                    getElementById(
+                const retryBtn =
+                    document.getElementById(
                         "retry-btn"
                     )
-                    .addEventListener(
+                if (retryBtn) {
+                    retryBtn.addEventListener(
                         "click",
                         () => {
                             location.reload();
                         }
                     );
+                }
                 
                 selectedSquare = null;
 
@@ -492,6 +495,13 @@ document.addEventListener(
 
 function checkMove(move) {
 
+    if (
+        currentStep >=
+        lessonSteps.length
+    ) {
+        return false;
+    }
+    
     const expectedMove =
         lessonSteps[
             currentStep

@@ -1443,6 +1443,35 @@ def lesson_detail_view(request, lesson_name):
                     ]
                 }
             ],
+            "lesson_steps": [
+                {
+                    "instruction": "Move the knight from g1 to f3.",
+                    "expected_move": "g1-f3"
+                },
+                {
+                    "instruction": "Move the bishop from f1 to c4.",
+                    "expected_move": "f1-c4"
+                },
+                {
+                    "instruction": "Move the rook from a1 to a4.",
+                    "expected_move": "a1-a4"
+                },
+                {
+                    "instruction": "Move the queen from d1 to h5.",
+                    "expected_move": "d1-h5"
+                },
+                {
+                    "instruction": "Move the king from e1 to e2.",
+                    "expected_move": "e1-e2"
+                }
+            ],
+            "practice_position": {
+                "g1": "N",
+                "f1": "B",
+                "a1": "R",
+                "d1": "Q",
+                "e1": "K"
+            },
         },
 
         "Check and Checkmate": {
@@ -1483,7 +1512,20 @@ def lesson_detail_view(request, lesson_name):
                     },
                     "highlight": ["g7"]
                 }
-            ]
+            ],
+            "lesson_steps": [
+                {
+                    "instruction": "Move the queen from h5 to f7 and deliver checkmate.",
+                    "expected_move": "h5-f7"
+                }
+            ],
+
+            "practice_position": {
+                "h5": "Q",
+                "e8": "K",
+                "c4": "B",
+                "f7": "P"
+            },
         },
 
         "Castling": {
@@ -1518,7 +1560,19 @@ def lesson_detail_view(request, lesson_name):
                         "g1"
                     ]
                 }
-            ]
+            ],
+            "lesson_steps": [
+                {
+                    "instruction": "Castle kingside by moving the king from e1 to g1.",
+                    "expected_move": "e1-g1"
+                }
+            ],
+
+            "practice_position": {
+                "e1": "K",
+                "h1": "R",
+                "a1": "R"
+            }
         },
 
         "Opening Principles": {
@@ -1542,29 +1596,52 @@ def lesson_detail_view(request, lesson_name):
                 "Connect your rooks."
             ],
             "board_examples": [
-    {
-        "title": "Control the Center",
-        "position": {
-            "e2": "P",
-            "d2": "P"
-        },
-        "highlight": [
-            "e4",
-            "d4"
-        ]
-    },
-    {
-        "title": "Develop Knights",
-        "position": {
-            "b1": "N",
-            "g1": "N"
-        },
-        "highlight": [
-            "c3",
-            "f3"
-        ]
-    }
-]
+                {
+                    "title": "Control the Center",
+                    "position": {
+                        "e2": "P",
+                        "d2": "P"
+                    },
+                    "highlight": [
+                        "e4",
+                        "d4"
+                    ]
+                },
+                {
+                    "title": "Develop Knights",
+                    "position": {
+                        "b1": "N",
+                        "g1": "N"
+                    },
+                    "highlight": [
+                        "c3",
+                        "f3"
+                    ]
+                }
+            ],
+            "lesson_steps": [
+                {
+                    "instruction": "Control the center by playing e4.",
+                    "expected_move": "e2-e4"
+                },
+                {
+                    "instruction": "Develop the knight from g1 to f3.",
+                    "expected_move": "g1-f3"
+                },
+                {
+                    "instruction": "Develop the bishop from f1 to c4.",
+                    "expected_move": "f1-c4"
+                }
+            ],
+
+            "practice_position": {
+                "e1": "K",
+                "d1": "Q",
+                "f1": "B",
+                "g1": "N",
+                "e2": "P",
+                "d2": "P"
+            },
         },
 
         "Forks": {
@@ -1593,19 +1670,41 @@ def lesson_detail_view(request, lesson_name):
                 "Forks often win material."
             ],
             "board_examples": [
-    {
-        "title": "Knight Fork",
-        "position": {
-            "f6": "N",
-            "e8": "Q",
-            "g8": "R"
-        },
-        "highlight": [
-            "e8",
-            "g8"
-        ]
-    }
-]
+                {
+                    "title": "Knight Fork",
+                    "position": {
+                        "f6": "N",
+                        "e8": "Q",
+                        "g8": "R"
+                    },
+                    "highlight": [
+                        "e8",
+                        "g8"
+                    ]
+                }
+            ],
+            "lesson_steps": [
+                {
+                    "instruction": "Control the center by playing e4.",
+                    "expected_move": "e2-e4"
+                },
+                {
+                    "instruction": "Develop the knight from g1 to f3.",
+                    "expected_move": "g1-f3"
+                },
+                {
+                    "instruction": "Develop the bishop from f1 to c4.",
+                    "expected_move": "f1-c4"
+                }
+            ],
+            "practice_position": {
+                "e1": "K",
+                "d1": "Q",
+                "f1": "B",
+                "g1": "N",
+                "e2": "P",
+                "d2": "P"
+            }
         },
 
         "Pins": {
@@ -1629,19 +1728,30 @@ def lesson_detail_view(request, lesson_name):
                 "Pins can create tactical opportunities."
             ],
             "board_examples": [
-    {
-        "title": "Bishop Pin",
-        "position": {
-            "b5": "B",
-            "c6": "N",
-            "e8": "K"
-        },
-        "highlight": [
-            "c6",
-            "e8"
-        ]
-    }
-]
+                {
+                    "title": "Bishop Pin",
+                    "position": {
+                        "b5": "B",
+                        "c6": "N",
+                        "e8": "K"
+                    },
+                    "highlight": [
+                        "c6",
+                        "e8"
+                    ]
+                }
+            ],
+            "lesson_steps": [
+                {
+                    "instruction": "Move the bishop from b5 to pin the knight to the king.",
+                    "expected_move": "f1-b5"
+                }
+            ],
+            "practice_position": {
+                "f1": "B",
+                "c6": "N",
+                "e8": "K"
+            }
         },
 
         "Skewers": {
@@ -1665,19 +1775,30 @@ def lesson_detail_view(request, lesson_name):
                 "Skewers frequently win material."
             ],
             "board_examples": [
-    {
-        "title": "Queen Skewer",
-        "position": {
-            "a4": "Q",
-            "e8": "K",
-            "e7": "R"
-        },
-        "highlight": [
-            "e8",
-            "e7"
-        ]
-    }
-]
+                {
+                    "title": "Queen Skewer",
+                    "position": {
+                        "a4": "Q",
+                        "e8": "K",
+                        "e7": "R"
+                    },
+                    "highlight": [
+                        "e8",
+                        "e7"
+                    ]
+                }
+            ],
+            "lesson_steps": [
+                {
+                    "instruction": "Move the queen from a4 to create a skewer.",
+                    "expected_move": "a4-e8"
+                }
+            ],
+            "practice_position": {
+                "a4": "Q",
+                "e8": "K",
+                "d7": "R"
+            }
         },
 
         "Discovered Attacks": {
@@ -1701,19 +1822,30 @@ def lesson_detail_view(request, lesson_name):
                 "Coordinate your pieces to create tactical threats."
             ],
             "board_examples": [
-    {
-        "title": "Discovered Attack",
-        "position": {
-            "a1": "R",
-            "a2": "N",
-            "a8": "Q"
-        },
-        "highlight": [
-            "a2",
-            "a8"
-        ]
-    }
-]
+                {
+                    "title": "Discovered Attack",
+                    "position": {
+                        "a1": "R",
+                        "a2": "N",
+                        "a8": "Q"
+                    },
+                    "highlight": [
+                        "a2",
+                        "a8"
+                    ]
+                }
+            ],
+            "lesson_steps": [
+                {
+                    "instruction": "Move the knight from e2 to c3 to reveal the rook attack.",
+                    "expected_move": "e2-c3"
+                }
+            ],
+            "practice_position": {
+                "a1": "R",
+                "e2": "N",
+                "a8": "Q"
+            }
         },
 
         "Pawn Structures": {
@@ -1737,29 +1869,40 @@ def lesson_detail_view(request, lesson_name):
                 "Doubled and isolated pawns can become weaknesses."
             ],
             "board_examples": [
-    {
-        "title": "Pawn Chain",
-        "position": {
-            "c3": "P",
-            "d4": "P",
-            "e5": "P"
-        },
-        "highlight": [
-            "c3",
-            "d4",
-            "e5"
-        ]
-    },
-    {
-        "title": "Isolated Pawn",
-        "position": {
-            "d4": "P"
-        },
-        "highlight": [
-            "d4"
-        ]
-    }
-]
+                {
+                    "title": "Pawn Chain",
+                    "position": {
+                        "c3": "P",
+                        "d4": "P",
+                        "e5": "P"
+                    },
+                    "highlight": [
+                        "c3",
+                        "d4",
+                        "e5"
+                    ]
+                },
+            {
+                "title": "Isolated Pawn",
+                "position": {
+                    "d4": "P"
+                },
+                "highlight": [
+                    "d4"
+                ]
+            }
+        ],
+        "lesson_steps": [
+                {
+                    "instruction": "Advance the passed pawn from d5 to d6.",
+                    "expected_move": "d5-d6"
+                }
+            ],
+
+            "practice_position": {
+                "d5": "P",
+                "e1": "K"
+            },  
         },
 
         "King Safety": {
@@ -1783,21 +1926,31 @@ def lesson_detail_view(request, lesson_name):
                 "A safe king allows active play elsewhere."
             ],
             "board_examples": [
-    {
-        "title": "Safe Castled King",
-        "position": {
-            "g1": "K",
-            "f2": "P",
-            "g2": "P",
-            "h2": "P"
-        },
-        "highlight": [
-            "f2",
-            "g2",
-            "h2"
-        ]
-    }
-]
+                {
+                    "title": "Safe Castled King",
+                    "position": {
+                        "g1": "K",
+                        "f2": "P",
+                        "g2": "P",
+                        "h2": "P"
+                    },
+                    "highlight": [
+                        "f2",
+                        "g2",
+                        "h2"
+                    ]
+                }
+            ],
+            "lesson_steps": [
+                {
+                    "instruction": "Castle kingside.",
+                    "expected_move": "e1-g1"
+                }
+            ],
+            "practice_position": {
+                "e1": "K",
+                "h1": "R"
+            }
         },
 
         "Piece Activity": {
@@ -1821,23 +1974,34 @@ def lesson_detail_view(request, lesson_name):
                 "Activity often outweighs material advantages."
             ],
             "board_examples": [
-    {
-        "title": "Active Knight",
-        "position": {
-            "d5": "N"
-        },
-        "highlight": [
-            "b4",
-            "b6",
-            "c3",
-            "c7",
-            "e3",
-            "e7",
-            "f4",
-            "f6"
-        ]
-    }
-]
+                {
+                    "title": "Active Knight",
+                    "position": {
+                        "d5": "N"
+                    },
+                    "highlight": [
+                        "b4",
+                        "b6",
+                        "c3",
+                        "c7",
+                        "e3",
+                        "e7",
+                        "f4",
+                        "f6"
+                    ]
+                }
+            ],
+            "lesson_steps": [
+                {
+                    "instruction": "Activate the rook by moving from a1 to a7.",
+                    "expected_move": "a1-a7"
+                }
+            ],
+
+            "practice_position": {
+                "a1": "R",
+                "e1": "K"
+            },
         },
 
         "Basic Endgames": {
@@ -1861,36 +2025,50 @@ def lesson_detail_view(request, lesson_name):
                 "Practice common checkmating patterns."
             ],
             "board_examples": [
-    {
-        "title": "King and Pawn Endgame",
-        "position": {
-            "e5": "K",
-            "e6": "P",
-            "e8": "K"
-        },
-        "highlight": [
-            "e6",
-            "e7",
-            "e8"
-        ]
-    },
-    {
-        "title": "Opposition",
-        "position": {
-            "e4": "K",
-            "e6": "K"
-        },
-        "highlight": [
-            "e4",
-            "e6"
-        ]
-    }
-]
+                {
+                    "title": "King and Pawn Endgame",
+                    "position": {
+                        "e5": "K",
+                        "e6": "P",
+                        "e8": "K"
+                    },
+                    "highlight": [
+                        "e6",
+                        "e7",
+                        "e8"
+                    ]
+                },
+                {
+                    "title": "Opposition",
+                    "position": {
+                        "e4": "K",
+                        "e6": "K"
+                    },
+                    "highlight": [
+                        "e4",
+                        "e6"
+                    ]
+                }
+            ],
+            "lesson_steps": [
+                {
+                    "instruction": "Promote the pawn by moving from e7 to e8.",
+                    "expected_move": "e7-e8"
+                }
+            ],
+            "practice_position": {
+                "e7": "P",
+                "e1": "K",
+                "e8": ""
+            }     
         }
     }
 
     lesson = lesson_data.get(lesson_name)
 
+    if lesson is None:
+        raise Http404("Lesson not found")
+    
     lesson_order = list(lesson_data.keys())
 
     current_index = lesson_order.index(lesson_name)
@@ -1955,7 +2133,8 @@ def complete_lesson(request, lesson_name):
         user=request.user,
         lesson_name=lesson_name,
         defaults={
-            "completed": True
+            "completed": True,
+            "completed_at": timezone.now(),
         }
     )
 
