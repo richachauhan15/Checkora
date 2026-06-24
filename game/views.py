@@ -4,9 +4,12 @@ import json
 import time
 import hashlib
 import math
+import io
+import base64
 import ipaddress
 import secrets
 import secrets as secrets_module
+from game.views_history import save_game_record
 from django.http import HttpResponseServerError
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.conf import settings
@@ -47,8 +50,9 @@ from .forms import CustomUserCreationForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 from django.contrib.auth.decorators import login_required
+from django.db import models
 
-from django.db.models import Avg, Max, Min, Sum
+from django.db.models import Count, Avg, Max, Min, Sum
 from datetime import timedelta
 
 from .opening_trainer_data import OPENINGS
@@ -66,10 +70,11 @@ from .models import (
     PlayerRating,
     RatingHistory,
     OpeningProgress,
+    UserProfile,
 )
 
 from .rating_service import calculate_rating_change
-from .models import Discussion, Reply
+from .models import Discussion, Reply, DiscussionBookmark
 from .forms import DiscussionForm, ReplyForm
 
 logger = logging.getLogger(__name__)
@@ -194,6 +199,7 @@ def record_game_result(request, mode, winner, reason, player_color='white', move
         )
         
         check_game_achievements(user)
+    return result
 
 
 @require_POST
@@ -242,9 +248,17 @@ def make_move(request):
         request.session.modified = True
         if game_status == 'checkmate':
             winner = 'black' if game.current_turn == 'white' else 'white'
-            record_game_result(request, game.mode, winner, 'checkmate', game.player_color, moves=game.move_history)
+            game_result = record_game_result(request, game.mode, winner, 'checkmate', game.player_color, moves=game.move_history)            
+            replay_record = save_game_record(request, pgn=game.generate_pgn(request.session.get('white_name', 'White'), request.session.get('black_name', 'Black')), result='1-0' if winner == 'white' else '0-1', termination='checkmate', white_label=request.session.get('white_name', 'White'), black_label=request.session.get('black_name', 'Black'))
+            if game_result is not None:
+                game_result.replay_record = replay_record
+                game_result.save(update_fields=['replay_record'])
         elif game_status in ('stalemate', 'draw'):
-            record_game_result(request, game.mode, 'draw', game.draw_reason or 'stalemate', game.player_color, moves=game.move_history)
+            game_result = record_game_result(request, game.mode, 'draw', game.draw_reason or 'stalemate', game.player_color, moves=game.move_history)            
+            replay_record = save_game_record(request, pgn=game.generate_pgn(request.session.get('white_name', 'White'), request.session.get('black_name', 'Black')), result='1/2-1/2', termination=game.draw_reason or 'stalemate', white_label=request.session.get('white_name', 'White'), black_label=request.session.get('black_name', 'Black'))
+            if game_result is not None:
+                game_result.replay_record = replay_record
+                game_result.save(update_fields=['replay_record'])
 
     return JsonResponse({
         'valid': success,
@@ -261,7 +275,7 @@ def make_move(request):
         'game_status': game_status,
         'draw_reason': game.draw_reason,
         'threefold_warning': game.threefold_warning,
-        'fen': game.generate_fen_key(),
+        'fen': game.generate_full_fen(),
         'pgn': game.generate_pgn(request.session.get('white_name', 'White'), request.session.get('black_name', 'Black')),
         'white_name': request.session.get('white_name', 'White'),
         'black_name': request.session.get('black_name', 'Black'),
@@ -379,7 +393,7 @@ def new_game(request):
         'difficulty': difficulty,
         'time_limit': getattr(game, 'time_limit', 600),
         'increment': getattr(game, 'increment', 0),
-        'fen': game.generate_fen_key(),
+        'fen': game.generate_full_fen(),
         'pgn': game.generate_pgn(request.session.get('white_name', 'White'), request.session.get('black_name', 'Black')),
         'game_status': game.game_status,
         'draw_reason': game.draw_reason,
@@ -420,7 +434,7 @@ def resume_game(request):
         'game_status': game.game_status,
         'draw_reason': game.draw_reason,
         'threefold_warning': game.threefold_warning,
-        'fen': game.generate_fen_key(),
+        'fen': game.generate_full_fen(),
         'pgn': game.generate_pgn(request.session.get('white_name', 'White'), request.session.get('black_name', 'Black')),
         'difficulty': request.session.get('difficulty', 'medium'),
     })
@@ -483,7 +497,7 @@ def get_state(request):
         'difficulty': request.session.get('difficulty', 'medium'),
         'white_name': request.session.get('white_name', 'White'),
         'black_name': request.session.get('black_name', 'Black'),
-        'fen': game.generate_fen_key(),
+        'fen': game.generate_full_fen(),
         'pgn': game.generate_pgn(request.session.get('white_name', 'White'), request.session.get('black_name', 'Black')),
         'game_status': game.game_status,
         'draw_reason': game.draw_reason,
@@ -584,9 +598,17 @@ def ai_move(request):
 
         if game_status == 'checkmate':
             winner = 'black' if game.current_turn == 'white' else 'white'
-            record_game_result(request, game.mode, winner, 'checkmate', game.player_color, moves=game.move_history)
+            game_result = record_game_result(request, game.mode, winner, 'checkmate', game.player_color, moves=game.move_history)
+            replay_record = save_game_record(request, pgn=game.generate_pgn(request.session.get('white_name', 'White'), request.session.get('black_name', 'Black')), result='1-0' if winner == 'white' else '0-1', termination='checkmate', white_label=request.session.get('white_name', 'White'), black_label=request.session.get('black_name', 'Black'))
+            if game_result is not None:
+                game_result.replay_record = replay_record
+                game_result.save(update_fields=['replay_record'])
         elif game_status in ('stalemate', 'draw'):
-            record_game_result(request, game.mode, 'draw', game.draw_reason or 'stalemate', game.player_color, moves=game.move_history)
+            game_result = record_game_result(request, game.mode, 'draw', game.draw_reason or 'stalemate', game.player_color, moves=game.move_history)
+            replay_record = save_game_record(request, pgn=game.generate_pgn(request.session.get('white_name', 'White'), request.session.get('black_name', 'Black')), result='1/2-1/2', termination=game.draw_reason or 'stalemate', white_label=request.session.get('white_name', 'White'), black_label=request.session.get('black_name', 'Black'))
+            if game_result is not None:
+                game_result.replay_record = replay_record
+                game_result.save(update_fields=['replay_record'])
 
     return JsonResponse({
         'valid': success,
@@ -604,7 +626,7 @@ def ai_move(request):
         'game_status': game_status,
         'draw_reason': game.draw_reason,
         'threefold_warning': game.threefold_warning,
-        'fen': game.generate_fen_key(),
+        'fen': game.generate_full_fen(),
         'pgn': game.generate_pgn(request.session.get('white_name', 'White'), request.session.get('black_name', 'Black')),
         'white_name': request.session.get('white_name', 'White'),
         'black_name': request.session.get('black_name', 'Black'),
@@ -673,7 +695,13 @@ def resign_game(request):
     request.session.modified = True
 
     try:
-        record_game_result(request, game.mode, winner, 'resign', game.player_color, moves=game.move_history)
+        game_result = record_game_result(request, game.mode, winner, 'resign', game.player_color, moves=game.move_history)
+        pgn_str = game.generate_pgn(request.session.get('white_name', 'White'), request.session.get('black_name', 'Black'))
+        pgn_result = '1-0' if winner == 'white' else '0-1'
+        replay_record = save_game_record(request, pgn=pgn_str, result=pgn_result, termination='resignation', white_label=request.session.get('white_name', 'White'), black_label=request.session.get('black_name', 'Black'))
+        if game_result is not None:
+            game_result.replay_record = replay_record
+            game_result.save(update_fields=['replay_record'])
     except Exception as e:
         logger.error('Failed to record resign result: %s', e)
 
@@ -1603,9 +1631,7 @@ def logout_view(request):
 def stats_view(request):
     """Display game statistics."""
     # Only show real database records linked to the logged-in user
-    user_results = GameResult.objects.filter(
-        user=request.user
-    ).exclude(mode__in=['', None])
+    user_results = request.user.game_results.all().exclude(mode__in=['', None])
 
     total_games = user_results.count()
 
@@ -1890,9 +1916,15 @@ def update_puzzle_stats(request):
 
 
 def puzzle_stats_view(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            "streak": 0,
+            "longest_streak": 0
+        })
+    stats, _ = PuzzleStats.objects.get_or_create(user=request.user)
     return JsonResponse({
-        "streak": 0,
-        "longest_streak": 0
+        "streak": stats.current_streak,
+        "longest_streak": stats.best_streak
     })
 
 
@@ -3658,17 +3690,103 @@ def download_badge(request, achievement_id):
         return HttpResponseServerError(
             "Badge generation failed."
         )
+    
+def apply_discussion_sort(queryset, sort_by):
+    queryset = queryset.annotate(
+        reply_count=Count("replies", distinct=True),
+        bookmark_count=Count("bookmarks", distinct=True),
+        last_reply_at=Max("replies__created_at"),
+    )
+
+    if sort_by == "oldest":
+        return queryset.order_by("created_at")
+
+    if sort_by == "most_replies":
+        return queryset.order_by("-reply_count", "-created_at")
+
+    if sort_by == "most_bookmarked":
+        return queryset.order_by("-bookmark_count", "-created_at")
+
+    if sort_by == "recently_active":
+        return queryset.order_by(
+            F("last_reply_at").desc(nulls_last=True),
+            "-updated_at",
+            "-created_at",
+        )
+
+    return queryset.order_by("-created_at")
 
 def forum_list(request):
+    sort_by = request.GET.get("sort", "newest")
+
     discussions = Discussion.objects.select_related("user").prefetch_related("replies")
+
+    user_discussions = Discussion.objects.none()
+    bookmarked_discussions = Discussion.objects.none()
+    bookmarked_ids = set()
+
+    discussions = apply_discussion_sort(discussions, sort_by)
+
+    if request.user.is_authenticated:
+        user_discussions = (
+            Discussion.objects
+            .filter(
+                Q(user=request.user) |
+                Q(replies__user=request.user)
+            )
+            .select_related("user")
+            .prefetch_related("replies")
+            .distinct()
+        )
+
+        bookmarked_discussions = (
+            Discussion.objects
+            .filter(bookmarks__user=request.user)
+            .select_related("user")
+            .prefetch_related("replies")
+            .distinct()
+        )
+
+        user_discussions = apply_discussion_sort(user_discussions, sort_by)
+        bookmarked_discussions = apply_discussion_sort(bookmarked_discussions, sort_by)
+
+        bookmarked_ids = set(
+            request.user.discussion_bookmarks.values_list(
+                "discussion_id",
+                flat=True
+            )
+        )
 
     return render(
         request,
         "game/forum_list.html",
         {
             "discussions": discussions,
+            "user_discussions": user_discussions,
+            "bookmarked_discussions": bookmarked_discussions,
+            "bookmarked_ids": bookmarked_ids,
+            "sort_by": sort_by,
         }
     )
+
+@login_required
+@require_POST
+def toggle_discussion_bookmark(request, discussion_id):
+    discussion = get_object_or_404(Discussion, id=discussion_id)
+
+    bookmark, created = DiscussionBookmark.objects.get_or_create(
+        user=request.user,
+        discussion=discussion
+    )
+
+    if not created:
+        bookmark.delete()
+
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER")
+    if next_url:
+        return redirect(next_url)
+
+    return redirect("forum")
 
 def forum_detail(request, discussion_id):
     discussion = get_object_or_404(Discussion, id=discussion_id)
@@ -3680,6 +3798,10 @@ def forum_detail(request, discussion_id):
 
     form = ReplyForm()
 
+    is_bookmarked = False
+    if request.user.is_authenticated:
+        is_bookmarked = discussion.bookmarks.filter(user=request.user).exists()
+
     return render(
         request,
         "game/forum_detail.html",
@@ -3687,6 +3809,7 @@ def forum_detail(request, discussion_id):
             "discussion": discussion,
             "replies": replies,
             "form": form,
+            "is_bookmarked": is_bookmarked,
         }
     )
 
@@ -3802,3 +3925,119 @@ def forum_reply_delete(request, reply_id):
 
     messages.success(request, "Reply deleted successfully.")
     return redirect("forum_detail", discussion_id=reply.discussion.id)
+
+
+# ---------------------------------------------------------------------------
+# Avatar management views
+# ---------------------------------------------------------------------------
+
+@login_required
+def upload_avatar(request):
+    """Handle avatar upload (GET renders form, POST processes the file).
+
+    Uploaded images are:
+    * Validated for format (PNG / JPEG / WEBP) and size (≤ 5 MB) by the form.
+    * Resized to at most 256 × 256 pixels (aspect-ratio preserved) by Pillow.
+    * Compressed and stored as a base64-encoded data URI in the database.
+
+    Storing in the database (instead of the filesystem) keeps avatars
+    persistent across Vercel's ephemeral serverless execution cycles.
+    """
+    from .forms import AvatarUploadForm
+    from PIL import Image
+
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == "POST":
+        form = AvatarUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            uploaded_file = form.cleaned_data["avatar"]
+            try:
+                img = Image.open(uploaded_file)
+                # Pixel bomb guard: restrict dimensions before decoding
+                if img.size[0] > 4096 or img.size[1] > 4096:
+                    raise ValueError(
+                        "Image dimensions exceed the maximum allowed size of "
+                        "4096×4096."
+                    )
+
+                # Eagerly decode the entire image to catch truncated /
+                # corrupt files before any transformation takes place.
+                try:
+                    img.load()
+                except Exception as exc:
+                    raise ValueError("Image file appears to be corrupt or truncated.") from exc
+                # Convert to a mode that JPEG / PNG can handle cleanly.
+                if img.mode in ("RGBA", "LA", "P"):
+                    img = img.convert("RGBA")
+                    save_format = "PNG"
+                    mime = "image/png"
+                else:
+                    img = img.convert("RGB")
+                    save_format = "JPEG"
+                    mime = "image/jpeg"
+
+                # Resize to max 256 × 256, preserving aspect ratio.
+                img.thumbnail((256, 256), Image.LANCZOS)
+
+                buffer = io.BytesIO()
+                if save_format == "JPEG":
+                    img.save(buffer, format="JPEG", quality=85, optimize=True)
+                else:
+                    img.save(buffer, format="PNG", optimize=True)
+
+                encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
+                profile.avatar = f"data:{mime};base64,{encoded}"
+                profile.save()
+                messages.success(
+                    request,
+                    "Your avatar has been updated successfully!"
+                )
+            except Exception:
+                logger.exception("Avatar processing failed for user %s", request.user.username)
+                messages.error(
+                    request,
+                    "Failed to process image. Please try a different file."
+                )
+        else:
+            for field_errors in form.errors.values():
+                for error in field_errors:
+                    messages.error(request, error)
+
+        return redirect("upload_avatar")
+
+    form = AvatarUploadForm()
+    return render(request, "game/avatar.html", {
+        "form": form,
+        "profile": profile,
+    })
+
+
+@login_required
+@require_POST
+def remove_avatar(request):
+    """Clear the user's avatar, reverting to the default fallback."""
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    profile.avatar = ""
+    profile.save()
+    messages.success(request, "Avatar removed successfully.")
+    return redirect("upload_avatar")
+
+
+@login_required
+@require_GET
+def get_avatar(request):
+    """Return the current user's avatar as a JSON response.
+
+    Returns the base64 data URI (or an empty string when no avatar is set)
+    for use by JavaScript on pages that need to display the avatar
+    dynamically without a full page reload.
+    """
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    # Use defer to avoid loading the full avatar blob into the ORM object
+    # when the profile already exists (get_or_create falls back to a
+    # regular fetch which does load it, so we re-fetch with .only() here).
+    avatar = UserProfile.objects.filter(user=request.user).values_list(
+        "avatar", flat=True
+    ).first() or ""
+    return JsonResponse({"avatar": avatar})
